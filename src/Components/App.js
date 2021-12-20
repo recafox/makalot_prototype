@@ -16,6 +16,7 @@ import VerticalFrame from './VerticalFrame';
 function App() {
   const containerRef = useRef(null);
   const isInVertical = useRef(false);
+  const isScrollLocked = useRef(false); // when vertical is 0% or 100%, lock will be canceled
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -36,6 +37,10 @@ function App() {
           new DOMMatrix(currentContainerStyle.transform).m41
         );
         if (e.deltaY > 0) {
+          if (translateX + moveDist >= verticalContainerPos) {
+            isInVertical.current = true;
+            container.style.transform = `translateX(-${verticalContainerPos}px)`;
+          }
           if (translateX + moveDist >= containerWidth - window.innerWidth) {
             container.style.transform = `translateX(-${
               containerWidth - window.innerWidth
@@ -46,7 +51,6 @@ function App() {
             }px)`;
           }
         } else {
-          console.log(translateX - moveDist);
           if (translateX - moveDist <= 0) {
             container.style.transform = `translateX(0px)`;
           } else {
@@ -56,6 +60,33 @@ function App() {
           }
         }
       } else {
+        // vertical scrolling
+        const verticalStyle = window.getComputedStyle(verticalContainer);
+        const verticalTransform = Math.abs(
+          new DOMMatrix(verticalStyle.transform).m42
+        );
+        if (e.deltaY > 0) {
+          if (
+            verticalTransform + moveDist >=
+            verticalContainerHeight - window.innerHeight
+          ) {
+            verticalContainer.style.transform = `translateY(-${
+              verticalContainerHeight - window.innerHeight
+            }px)`;
+          } else {
+            verticalContainer.style.transform = `translateY(-${
+              verticalTransform + moveDist
+            }px)`;
+          }
+        } else {
+          if (verticalTransform - moveDist <= 0) {
+            verticalContainer.style.transform = `translateY(0px)`;
+          } else {
+            verticalContainer.style.transform = `translateY(-${
+              verticalTransform - moveDist
+            }px)`;
+          }
+        }
       }
     };
 
