@@ -5,57 +5,57 @@ import { useEffect, useRef, useState } from 'react';
 import HorizontalFrame from './HorizontalFrame';
 import VerticalFrame from './VerticalFrame';
 
+// 滑鼠滾輪向右平移
+// 在移到vertical區塊時, 滾輪事件變成向下
+// vertical區塊滾動完成後, 滾輪事件變回向右
+
+// 滑鼠滾輪向左平移
+// 在移到vertical區塊時, 滾輪事件變成向上
+// vertical區塊回到原點時, 滾輪事件變回向左
+
 function App() {
-  const scrolledIDRef = useRef(0);
   const containerRef = useRef(null);
-  const totalSections = 3;
-  const currentlyMoved = useRef(0);
-  const isScrollable = useRef(true);
-  const [currentSection, setCurrentSection] = useState(0);
+  const isInVertical = useRef(false);
 
   useEffect(() => {
+    if (!containerRef.current) return;
+    const container = containerRef.current;
+    const containerWidth = container.getBoundingClientRect().width;
+    const verticalContainer = document.querySelector('#SECTION_1');
+    const verticalContainerPos = verticalContainer.getBoundingClientRect().left;
+    const verticalContainerWidth =
+      verticalContainer.getBoundingClientRect().width;
+    const verticalContainerHeight =
+      verticalContainer.getBoundingClientRect().height;
+
     const handleWheel = (e) => {
-      if (!isScrollable.current) return;
-      const deltaY = e.deltaY;
-      const container = containerRef.current;
-      const style = window.getComputedStyle(container);
-      const currentTranslate = new DOMMatrix(style.transform).m41; // translateX
-      const dist = window.innerWidth / 20;
-      if (deltaY > 0) {
-        // boundary
-        const max = container.getBoundingClientRect().width - window.innerWidth;
-        if (Math.abs(currentTranslate - dist) >= max) {
-          container.style.transform = `translateX(-${max}px)`;
+      const moveDist = Math.abs(e.deltaY) * 0.6;
+      if (!isInVertical.current) {
+        const currentContainerStyle = window.getComputedStyle(container);
+        const translateX = Math.abs(
+          new DOMMatrix(currentContainerStyle.transform).m41
+        );
+        if (e.deltaY > 0) {
+          if (translateX + moveDist >= containerWidth - window.innerWidth) {
+            container.style.transform = `translateX(-${
+              containerWidth - window.innerWidth
+            }px)`;
+          } else {
+            container.style.transform = `translateX(-${
+              translateX + moveDist
+            }px)`;
+          }
         } else {
-          container.style.transform = `translateX(${
-            currentTranslate - dist
-          }px)`;
+          console.log(translateX - moveDist);
+          if (translateX - moveDist <= 0) {
+            container.style.transform = `translateX(0px)`;
+          } else {
+            container.style.transform = `translateX(-${
+              translateX - moveDist
+            }px)`;
+          }
         }
       } else {
-        if (currentTranslate + dist >= 0) {
-          container.style.transform = `translateX(0)`;
-        } else {
-          container.style.transform = `translateX(${
-            currentTranslate + dist
-          }px)`;
-        }
-      }
-      currentlyMoved.current = Math.abs(new DOMMatrix(style.transform).m41);
-      const sections = [0, window.innerWidth, window.innerWidth * 2];
-      // 要換成各section實際的值
-      // TODO: 製作一個map, 記錄各區域左邊開始起點, 計算方式:
-      // 第 1 個元素為 0
-      // 第 2 個元素為 0 + 第一個元素的寬度
-      // 第 3 個元素為 第2個元素的左邊起點 + 第2個元素的寬度
-      let current = sections.indexOf(
-        sections.find((sec) => currentlyMoved.current === sec)
-      );
-
-      scrolledIDRef.current = current;
-
-      setCurrentSection(scrolledIDRef.current);
-      if (scrolledIDRef.current === 1) {
-        isScrollable.current = false;
       }
     };
 
@@ -66,13 +66,7 @@ function App() {
     <StyledContainer className='App' ref={containerRef}>
       <GlobalStyle />
       <HorizontalFrame id='SECTION_0' />
-      <VerticalFrame
-        id='SECTION_1'
-        isScrolledOver={currentSection === 1 ? true : false}
-        onScrollFinish={() => {
-          isScrollable.current = true;
-        }}
-      />
+      <VerticalFrame id='SECTION_1' />
       <HorizontalFrame id='SECTION_2' />
     </StyledContainer>
   );
