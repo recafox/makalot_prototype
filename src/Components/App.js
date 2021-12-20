@@ -16,7 +16,7 @@ import VerticalFrame from './VerticalFrame';
 function App() {
   const containerRef = useRef(null);
   const isInVertical = useRef(false);
-  const isScrollLocked = useRef(false); // when vertical is 0% or 100%, lock will be canceled
+  const isVerticalAllScrolled = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -31,32 +31,69 @@ function App() {
 
     const handleWheel = (e) => {
       const moveDist = Math.abs(e.deltaY) * 0.6;
+      const currentContainerStyle = window.getComputedStyle(container);
+      const translateX = Math.abs(
+        new DOMMatrix(currentContainerStyle.transform).m41
+      );
+
+      if (
+        translateX < verticalContainerPos ||
+        translateX >= verticalContainerPos + verticalContainerWidth
+      ) {
+        // reset progress
+        isVerticalAllScrolled.current = false;
+      }
+
       if (!isInVertical.current) {
-        const currentContainerStyle = window.getComputedStyle(container);
-        const translateX = Math.abs(
-          new DOMMatrix(currentContainerStyle.transform).m41
-        );
         if (e.deltaY > 0) {
-          if (translateX + moveDist >= verticalContainerPos) {
-            isInVertical.current = true;
-            container.style.transform = `translateX(-${verticalContainerPos}px)`;
-          }
           if (translateX + moveDist >= containerWidth - window.innerWidth) {
+            console.log('set transform 3333');
             container.style.transform = `translateX(-${
               containerWidth - window.innerWidth
             }px)`;
           } else {
-            container.style.transform = `translateX(-${
-              translateX + moveDist
-            }px)`;
+            if (
+              isVerticalAllScrolled.current === false &&
+              translateX + moveDist >= verticalContainerPos
+            ) {
+              isInVertical.current = true;
+              console.log('set transform 1111', verticalContainerPos);
+              container.style.transform = `translateX(-${verticalContainerPos}px)`;
+            } else {
+              console.log('set transform 2222');
+              container.style.transform = `translateX(-${
+                translateX + moveDist
+              }px)`;
+            }
           }
         } else {
           if (translateX - moveDist <= 0) {
             container.style.transform = `translateX(0px)`;
           } else {
-            container.style.transform = `translateX(-${
-              translateX - moveDist
-            }px)`;
+            if (
+              isVerticalAllScrolled.current === false &&
+              translateX - moveDist <
+                verticalContainerPos + verticalContainerWidth * 0.5 &&
+              translateX - moveDist > verticalContainerPos
+            ) {
+              container.style.transition = `0.4s transform ease-out`;
+              console.log('set transform 4444');
+              container.style.transform = `translateX(-${verticalContainerPos}px)`;
+              setTimeout(() => {
+                console.log('set transform 5555');
+                verticalContainer.style.transform = `translateY(-${
+                  verticalContainerHeight - window.innerHeight
+                }px)`;
+                isInVertical.current = true;
+                isVerticalAllScrolled.current = false;
+                container.style.transition = 'unset';
+              }, 400);
+            } else {
+              console.log('set transform 6666');
+              container.style.transform = `translateX(-${
+                translateX - moveDist
+              }px)`;
+            }
           }
         }
       } else {
@@ -73,6 +110,8 @@ function App() {
             verticalContainer.style.transform = `translateY(-${
               verticalContainerHeight - window.innerHeight
             }px)`;
+            isInVertical.current = false;
+            isVerticalAllScrolled.current = true;
           } else {
             verticalContainer.style.transform = `translateY(-${
               verticalTransform + moveDist
@@ -81,6 +120,8 @@ function App() {
         } else {
           if (verticalTransform - moveDist <= 0) {
             verticalContainer.style.transform = `translateY(0px)`;
+            isInVertical.current = false;
+            isVerticalAllScrolled.current = true;
           } else {
             verticalContainer.style.transform = `translateY(-${
               verticalTransform - moveDist
